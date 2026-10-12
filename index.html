@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lecturas</title>
+<meta name="description" content="Mis lecturas de Goodreads, en limpio.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lecturas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+:root {
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --card-2: #F7F7FA;
+  --label: #000000;
+  --label-2: rgba(60, 60, 67, .62);
+  --label-3: rgba(60, 60, 67, .32);
+  --sep: rgba(60, 60, 67, .16);
+  --fill: rgba(120, 120, 128, .12);
+  --fill-2: rgba(120, 120, 128, .2);
+  --accent: #FF9500;
+  --accent-text: #C2660A;
+  --accent-soft: rgba(255, 149, 0, .14);
+  --green: #34C759;
+  --green-soft: rgba(52, 199, 89, .14);
+  --red: #FF3B30;
+  --red-soft: rgba(255, 59, 48, .12);
+  --glass: rgba(255, 255, 255, .64);
+  --glass-strong: rgba(255, 255, 255, .82);
+  --sheet: rgba(246, 246, 249, .94);
+  --glass-edge: rgba(255, 255, 255, .85);
+  --glass-line: rgba(0, 0, 0, .07);
+  --shadow: 0 10px 34px rgba(0, 0, 0, .13), 0 2px 8px rgba(0, 0, 0, .06);
+  --cover-shadow: 0 1px 2px rgba(0,0,0,.18), 0 6px 16px rgba(0,0,0,.14);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --radius: 26px;
+  --serif: "New York", ui-serif, "Iowan Old Style", Georgia, serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1C1C1E;
+    --card-2: #242426;
+    --label: #FFFFFF;
+    --label-2: rgba(235, 235, 245, .62);
+    --label-3: rgba(235, 235, 245, .3);
+    --sep: rgba(84, 84, 88, .55);
+    --fill: rgba(120, 120, 128, .24);
+    --fill-2: rgba(120, 120, 128, .34);
+    --accent: #FF9F0A;
+    --accent-text: #FFB340;
+    --accent-soft: rgba(255, 159, 10, .2);
+    --green: #30D158;
+    --green-soft: rgba(48, 209, 88, .18);
+    --red: #FF453A;
+    --red-soft: rgba(255, 69, 58, .18);
+    --glass: rgba(44, 44, 48, .58);
+    --glass-strong: rgba(44, 44, 48, .82);
+    --sheet: rgba(26, 26, 28, .94);
+    --glass-edge: rgba(255, 255, 255, .16);
+    --glass-line: rgba(255, 255, 255, .06);
+    --shadow: 0 10px 34px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .3);
+    --cover-shadow: 0 1px 2px rgba(0,0,0,.5), 0 6px 18px rgba(0,0,0,.45);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body {
+  margin: 0; background: var(--bg); color: var(--label);
+  font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  letter-spacing: -.41px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: auto;
+}
+body.locked { position: fixed; left: 0; right: 0; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; letter-spacing: inherit; }
+a { color: inherit; text-decoration: none; }
+img { display: block; }
+h1, h2, h3, p { margin: 0; }
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- Vidrio líquido ---------- */
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--glass-edge), inset 0 0 0 .5px var(--glass-line);
+}
+
+/* ---------- Estructura ---------- */
+main#view {
+  min-height: 100vh;
+  padding: calc(var(--safe-t) + 8px) 16px calc(var(--safe-b) + 118px);
+  max-width: 640px; margin: 0 auto;
+  animation: fadeIn .28s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } }
+
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  height: calc(var(--safe-t) + 44px); padding-top: var(--safe-t);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity .2s ease;
+}
+.topbar::before {
+  content: ""; position: absolute; inset: 0 0 -18px 0; z-index: -1;
+  background: linear-gradient(var(--bg) 62%, color-mix(in srgb, var(--bg) 0%, transparent));
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent);
+}
+.topbar.show { opacity: 1; }
+.topbar span { font-weight: 600; font-size: 17px; }
+
+.bottomfade {
+  position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--safe-b) + 96px); z-index: 20; pointer-events: none;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 70%, transparent));
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(transparent, #000 70%); mask-image: linear-gradient(transparent, #000 70%);
+}
+
+/* Título grande */
+.lt { padding: 44px 4px 14px; }
+.lt-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lt h1 { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: .37px; }
+.lt-sub { margin-top: 2px; color: var(--label-2); font-size: 15px; letter-spacing: -.24px; }
+.lt-sub button { color: var(--label-2); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--fill); display: grid; place-items: center; color: var(--label-2); font-weight: 600; font-size: 15px; flex: none; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Secciones */
+.sec { margin-top: 26px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 10px; }
+.sec-h h2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: .35px; }
+.sec-h span, .sec-h button { color: var(--label-2); font-size: 15px; }
+.card { background: var(--card); border-radius: var(--radius); }
+.muted { color: var(--label-2); }
+
+/* Anillos */
+.ring { display: block; }
+.ring-track { fill: none; stroke: var(--fill); }
+.ring-fill { fill: none; stroke: var(--accent); stroke-linecap: round; animation: ringIn 1s cubic-bezier(.2,.8,.2,1) both; }
+.ring-fill.done { stroke: var(--accent); }
+@keyframes ringIn { from { stroke-dashoffset: var(--c); } }
+.ring-wrap { position: relative; flex: none; display: grid; place-items: center; }
+.ring-wrap .center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring-wrap .big { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: .3px; font-variant-numeric: tabular-nums; }
+.ring-wrap .small { font-size: 13px; color: var(--label-2); margin-top: 3px; letter-spacing: -.08px; }
+
+/* Desafío destacado */
+.hero { display: flex; gap: 18px; align-items: center; padding: 18px; }
+.hero .txt { min-width: 0; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: .4px; }
+.hero h3 { font-size: 22px; line-height: 27px; font-weight: 700; margin: 3px 0 8px; letter-spacing: .3px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: -.08px; background: var(--fill); color: var(--label-2); }
+.pill.ok { background: var(--green-soft); color: var(--green); }
+.pill.warn { background: var(--accent-soft); color: var(--accent-text); }
+.pill svg.i { width: 15px; height: 15px; stroke-width: 2.4; }
+.hero .foot { margin-top: 8px; font-size: 13px; color: var(--label-2); letter-spacing: -.08px; }
+
+/* Portadas */
+.cover { border-radius: 5px; object-fit: cover; background: var(--fill); box-shadow: var(--cover-shadow); flex: none; }
+.cover.ph { display: flex; align-items: flex-end; padding: 8% 9%; color: rgba(255,255,255,.95); font-family: var(--serif); font-weight: 600; overflow: hidden; line-height: 1.1; }
+
+/* Leyendo ahora */
+.book-card { display: flex; gap: 14px; padding: 14px; text-align: left; width: 100%; }
+.book-card + .book-card { margin-top: 10px; }
+.book-card .cover { width: 76px; height: 114px; }
+.book-card .cover.ph { font-size: 12px; }
+.book-card .info { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.t-serif { font-family: var(--serif); font-weight: 600; letter-spacing: 0; }
+.book-card .title { font-size: 19px; line-height: 23px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.series { font-size: 13px; color: var(--label-2); margin-top: 2px; letter-spacing: -.08px; }
+.author { font-size: 15px; color: var(--label-2); margin-top: 3px; letter-spacing: -.24px; }
+.prog { margin-top: auto; padding-top: 10px; }
+.bar { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transform-origin: left; animation: barIn .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes barIn { from { transform: scaleX(0); } }
+.prog-row { display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px; color: var(--label-2); letter-spacing: -.08px; font-variant-numeric: tabular-nums; }
+.prog-row b { color: var(--label); font-weight: 600; }
+
+/* Carrusel */
+.shelf { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 20px; align-items: flex-start; margin: 0 -16px; padding: 4px 20px 6px; scrollbar-width: none; }
+.shelf::-webkit-scrollbar { display: none; }
+.shelf-item { width: 104px; flex: none; scroll-snap-align: start; text-align: left; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
+.shelf-item .cover { width: 104px; height: 156px; }
+.shelf-item .cover.ph { font-size: 13px; }
+.shelf-item .t { margin-top: 8px; font-size: 13px; font-weight: 600; line-height: 16px; letter-spacing: -.08px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shelf-item .stars { margin-top: 2px; }
+
+/* Estrellas */
+.stars { display: inline-flex; gap: 1px; font-size: 11px; letter-spacing: 0; color: var(--label-3); }
+.stars .on { color: var(--accent); }
+
+/* Listas agrupadas */
+.list { background: var(--card); border-radius: var(--radius); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; text-align: left; position: relative; }
+.row::after { content: ""; position: absolute; left: 72px; right: 0; bottom: 0; height: .5px; background: var(--sep); }
+.row:last-child::after { display: none; }
+.row:active { background: var(--fill); }
+.row .cover { width: 46px; height: 70px; border-radius: 4px; }
+.row .cover.ph { font-size: 7px; padding: 5px; }
+.row .info { flex: 1; min-width: 0; }
+.row .title { font-size: 16px; font-weight: 600; line-height: 20px; letter-spacing: -.32px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.row .author { font-size: 14px; margin-top: 2px; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; font-size: 12px; color: var(--label-2); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.meta .star { color: var(--accent); }
+.chev { color: var(--label-3); width: 14px; height: 14px; stroke-width: 2.4; }
+.badge { font-size: 11px; font-weight: 700; letter-spacing: .1px; text-transform: uppercase; padding: 3px 7px; border-radius: 6px; background: var(--fill); color: var(--label-2); }
+.badge.read { background: var(--green-soft); color: var(--green); }
+.badge.reading { background: var(--accent-soft); color: var(--accent-text); }
+
+/* Desafíos */
+.big-hero { padding: 22px 18px 18px; text-align: center; }
+.big-hero .ring-wrap { margin: 4px auto 14px; }
+.big-hero .big { font-size: 48px; }
+.big-hero h3 { font-size: 20px; font-weight: 700; letter-spacing: .38px; }
+.big-hero .pill { margin-top: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.tile { background: var(--card); border-radius: 20px; padding: 12px 12px 11px; }
+.tile .k { font-size: 12px; color: var(--label-2); font-weight: 600; letter-spacing: 0; }
+.tile .v { font-size: 24px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+.tile .v small { font-size: 13px; font-weight: 600; color: var(--label-2); margin-left: 2px; }
+.months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; align-items: end; height: 92px; padding: 14px 14px 8px; }
+.month { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.month i { width: 100%; max-width: 16px; border-radius: 5px; background: var(--fill-2); min-height: 4px; transform-origin: bottom; animation: growUp .8s cubic-bezier(.2,.8,.2,1) both; }
+.month i.has { background: var(--accent); }
+.month span { font-size: 11px; color: var(--label-3); font-weight: 600; }
+.month.now span { color: var(--label); }
+@keyframes growUp { from { transform: scaleY(0); } }
+.year-row { padding: 14px 16px; gap: 14px; }
+.year-row::after { left: 16px; }
+.year-row .y { font-size: 20px; font-weight: 700; width: 54px; font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+.year-row .info .bar { margin-top: 7px; height: 5px; }
+.year-row .line { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; letter-spacing: -.24px; }
+.year-row .line .muted { font-size: 13px; }
+.check { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: #fff; flex: none; }
+.check svg.i { width: 14px; height: 14px; stroke-width: 3; }
+.dot-miss { width: 24px; height: 24px; flex: none; display: grid; place-items: center; color: var(--label-3); }
+
+/* Segmentado */
+.seg { display: flex; padding: 3px; border-radius: 999px; background: var(--fill); margin: 0 0 14px; position: relative; }
+.seg button { flex: 1; padding: 7px 0; font-size: 14px; font-weight: 600; letter-spacing: -.15px; border-radius: 999px; color: var(--label-2); position: relative; z-index: 1; transition: color .2s; }
+.seg button.on { color: var(--label); background: var(--card); box-shadow: 0 3px 10px rgba(0,0,0,.1), 0 0 0 .5px var(--glass-line); }
+
+/* Buscar */
+.search { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 0 var(--glass-line); margin-bottom: 16px; }
+.search svg.i { color: var(--label-2); width: 20px; height: 20px; }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--label); font: inherit; font-size: 17px; letter-spacing: -.41px; -webkit-appearance: none; }
+.search input::placeholder { color: var(--label-3); }
+.search input::-webkit-search-cancel-button { display: none; }
+.clear { width: 22px; height: 22px; border-radius: 50%; background: var(--label-3); color: var(--card); display: none; place-items: center; }
+.clear.show { display: grid; }
+.clear svg.i { width: 12px; height: 12px; stroke-width: 3; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 8px 14px; border-radius: 999px; background: var(--card); font-size: 15px; letter-spacing: -.24px; }
+
+/* Estados */
+.empty { text-align: center; padding: 48px 24px; color: var(--label-2); }
+.empty svg.i { width: 44px; height: 44px; stroke-width: 1.4; color: var(--label-3); margin: 0 auto 12px; display: block; }
+.empty h3 { color: var(--label); font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: .38px; }
+.empty p { font-size: 15px; letter-spacing: -.24px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 999px; font-weight: 600; font-size: 17px; }
+.btn.tint { background: var(--accent); color: #fff; }
+.btn.soft { background: var(--accent-soft); color: var(--accent-text); }
+.btn.gray { background: var(--fill); color: var(--label); }
+.btn.block { width: 100%; }
+.btn svg.i { width: 18px; height: 18px; stroke-width: 2.2; }
+.empty .btn { margin-top: 18px; }
+.skel { background: linear-gradient(90deg, var(--fill) 25%, var(--fill-2) 37%, var(--fill) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 8px; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--fill-2); border-top-color: var(--label-2); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ptr { position: fixed; top: calc(var(--safe-t) + 10px); left: 50%; z-index: 40; transform: translate(-50%, -90px); opacity: 0; transition: transform .25s ease, opacity .2s ease; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+.ptr.show { transform: translate(-50%, 0); opacity: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(var(--safe-b) + 92px); transform: translate(-50%, 20px); opacity: 0; transition: all .3s ease; z-index: 45; padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+/* ---------- Barra de pestañas iOS 26 ---------- */
+.tabbar { position: fixed; z-index: 35; left: 0; right: 0; bottom: max(calc(var(--safe-b) - 6px), 12px); display: flex; gap: 10px; padding: 0 16px; max-width: 640px; margin: 0 auto; }
+.tabs { flex: 1; display: flex; height: 62px; padding: 4px; border-radius: 999px; }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 999px; color: var(--label); font-size: 10px; font-weight: 600; letter-spacing: .1px; transition: background .25s ease, color .25s ease; }
+.tab svg.i { width: 25px; height: 25px; }
+.tab.on { color: var(--accent); background: var(--fill); }
+.tab.on svg.i { fill: currentColor; fill-opacity: .22; }
+.search-btn { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--label); transition: color .25s; }
+.search-btn.on { color: var(--accent); }
+.search-btn svg.i { width: 25px; height: 25px; stroke-width: 2; }
+.tab:active, .search-btn:active { transform: scale(.94); }
+
+/* ---------- Hoja inferior ---------- */
+#sheet-root { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+#sheet-root.open { pointer-events: auto; }
+.backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.32); opacity: 0; transition: opacity .35s ease; }
+#sheet-root.open .backdrop { opacity: 1; }
+.sheet {
+  position: absolute; left: 6px; right: 6px; bottom: 6px; max-width: 640px; margin: 0 auto;
+  max-height: calc(100% - var(--safe-t) - 18px); display: flex; flex-direction: column;
+  border-radius: 36px; background: var(--sheet);
+  -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+  box-shadow: 0 -2px 40px rgba(0,0,0,.18), inset 0 1px 0 var(--glass-edge), inset 0 0 0 .5px var(--glass-line);
+  transform: translateY(105%); transition: transform .5s cubic-bezier(.32,.72,0,1);
+}
+#sheet-root.open .sheet { transform: translateY(0); }
+.sheet.dragging { transition: none; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--label-3); margin: 8px auto 0; flex: none; }
+.sheet-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--label-2); z-index: 2; box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 .5px var(--glass-line); background: var(--fill); }
+.sheet-close svg.i { width: 15px; height: 15px; stroke-width: 2.6; }
+.sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 18px 20px calc(var(--safe-b) + 22px); }
+
+.bk { text-align: center; }
+.bk .cover { width: 150px; height: 225px; margin: 8px auto 18px; border-radius: 7px; }
+.bk .cover.ph { font-size: 20px; text-align: left; }
+.bk h2 { font-family: var(--serif); font-weight: 700; font-size: 26px; line-height: 31px; letter-spacing: 0; }
+.bk .series { font-size: 15px; margin-top: 4px; }
+.bk .author { font-size: 17px; margin-top: 6px; color: var(--accent-text); }
+.facts { display: flex; justify-content: center; margin: 18px 0 0; }
+.fact { flex: 1; max-width: 120px; padding: 0 6px; position: relative; }
+.fact + .fact::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: .5px; background: var(--sep); }
+.fact .k { font-size: 11px; font-weight: 600; color: var(--label-2); text-transform: uppercase; letter-spacing: .4px; }
+.fact .v { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.status { margin-top: 18px; padding: 14px 16px; border-radius: 20px; background: var(--card); text-align: left; display: flex; align-items: center; gap: 12px; }
+.status .ico { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent-text); }
+.status .ico.g { background: var(--green-soft); color: var(--green); }
+.status .ico svg.i { width: 19px; height: 19px; stroke-width: 2.2; }
+.status b { display: block; font-size: 16px; font-weight: 600; letter-spacing: -.32px; }
+.status span { font-size: 14px; color: var(--label-2); letter-spacing: -.15px; }
+.status .bar { margin-top: 8px; }
+.desc { text-align: left; margin-top: 18px; font-size: 16px; line-height: 23px; letter-spacing: -.24px; color: var(--label); white-space: pre-line; }
+.desc.clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.more { display: block; margin-top: 6px; color: var(--accent-text); font-weight: 600; font-size: 15px; text-align: left; }
+.genres { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 14px; }
+.genres span { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: var(--fill); color: var(--label-2); }
+.sheet .btn.block { margin-top: 20px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 12px; margin-top: 18px; text-align: left; align-items: start; }
+.grid .shelf-item { width: auto; }
+.grid .shelf-item .cover { width: 100%; height: auto; aspect-ratio: 2 / 3; }
+.note { font-size: 13px; color: var(--label-2); margin-top: 12px; letter-spacing: -.08px; }
+.prof { text-align: center; }
+.prof .avatar { width: 84px; height: 84px; margin: 8px auto 12px; font-size: 32px; }
+.prof h2 { font-size: 26px; font-weight: 700; letter-spacing: .35px; }
+.list.inner { margin-top: 18px; text-align: left; background: var(--card); }
+.list.inner .row { padding: 13px 16px; }
+.list.inner .row::after { left: 16px; }
+.list.inner .row .v { color: var(--label-2); font-variant-numeric: tabular-nums; }
+@media (min-width: 700px) { .sheet { bottom: 24px; border-radius: 36px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"><span id="topTitle"></span></div>
+<div class="ptr glass" id="ptr"><div class="spinner"></div></div>
+<main id="view"></main>
+<div class="bottomfade"></div>
+<nav class="tabbar" aria-label="Secciones">
+  <div class="tabs glass" role="tablist">
+    <button class="tab" data-tab="reading" role="tab"><svg class="i" viewBox="0 0 24 24"><path d="M12 6.6C10.1 5.2 7.4 4.6 3.6 4.8v13.6c3.8-.2 6.5.4 8.4 1.8 1.9-1.4 4.6-2 8.4-1.8V4.8c-3.8-.2-6.5.4-8.4 1.8Z"/><path d="M12 6.6v13.6"/></svg>Leyendo</button>
+    <button class="tab" data-tab="challenges" role="tab"><svg class="i" viewBox="0 0 24 24"><path d="M7.5 4h9v5.5a4.5 4.5 0 0 1-9 0V4Z"/><path d="M7.5 6H4.8a3 3 0 0 0 3.2 4.2M16.5 6h2.7a3 3 0 0 1-3.2 4.2M12 14v3.5M8.5 20.5h7M9.8 17.5h4.4"/></svg>Desafíos</button>
+    <button class="tab" data-tab="toread" role="tab"><svg class="i" viewBox="0 0 24 24"><path d="M7 3.6h10a1 1 0 0 1 1 1v16.1l-6-4.1-6 4.1V4.6a1 1 0 0 1 1-1Z"/></svg>Quiero leer</button>
+  </div>
+  <button class="search-btn glass" data-tab="search" aria-label="Buscar"><svg class="i" viewBox="0 0 24 24"><circle cx="10.6" cy="10.6" r="6.6"/><path d="m15.6 15.6 4.9 4.9"/></svg></button>
+</nav>
+<div id="sheet-root"></div>
+<div class="toast glass" id="toast"></div>
+
+<script>
+'use strict';
+const API = '/api';
+const K = { data: 'lecturas.data.v1', recent: 'lecturas.recent.v1', sort: 'lecturas.sort.v1', tab: 'lecturas.tab.v1' };
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const S = {
+  data: store.get(K.data),
+  loading: false,
+  manual: false,
+  error: null,
+  tab: store.get(K.tab) || 'reading',
+  sort: store.get(K.sort) || 'recent',
+  q: '',
+  results: null,
+  searching: false,
+  searchError: null,
+  recent: store.get(K.recent) || [],
+  scroll: {},
+  index: new Map(),
+  extra: new Map(),
+};
+
+/* ---------- Utilidades ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, a, b) => `${n.toLocaleString('es-CL')} ${n === 1 ? a : b}`;
+const fmtNum = (n) => Number(n).toLocaleString('es-CL');
+const fmtRating = (n) => (n == null ? '' : Number(n).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+function fmtDate(iso, withYear) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const show = withYear ?? y !== new Date().getFullYear();
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${show ? ' ' + y : ''}`;
+}
+function ago(iso) {
+  if (!iso) return '';
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (m < 1) return 'recién';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `el ${fmtDate(iso)}`;
+}
+const ICON = {
+  chev: '<svg class="i chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>',
+  x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  ext: '<svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  book: '<svg class="i" viewBox="0 0 24 24"><path d="M12 6.6C10.1 5.2 7.4 4.6 3.6 4.8v13.6c3.8-.2 6.5.4 8.4 1.8 1.9-1.4 4.6-2 8.4-1.8V4.8c-3.8-.2-6.5.4-8.4 1.8Z"/><path d="M12 6.6v13.6"/></svg>',
+  mark: '<svg class="i" viewBox="0 0 24 24"><path d="M7 3.6h10a1 1 0 0 1 1 1v16.1l-6-4.1-6 4.1V4.6a1 1 0 0 1 1-1Z"/></svg>',
+  search: '<svg class="i" viewBox="0 0 24 24"><circle cx="10.6" cy="10.6" r="6.6"/><path d="m15.6 15.6 4.9 4.9"/></svg>',
+  trophy: '<svg class="i" viewBox="0 0 24 24"><path d="M7.5 4h9v5.5a4.5 4.5 0 0 1-9 0V4Z"/><path d="M7.5 6H4.8a3 3 0 0 0 3.2 4.2M16.5 6h2.7a3 3 0 0 1-3.2 4.2M12 14v3.5M8.5 20.5h7M9.8 17.5h4.4"/></svg>',
+  wifi: '<svg class="i" viewBox="0 0 24 24"><path d="M2.5 8.8a14 14 0 0 1 19 0M5.6 12.2a9.5 9.5 0 0 1 12.8 0M8.8 15.5a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19" r=".9"/></svg>',
+  refresh: '<svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>',
+  clock: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+};
+
+function stars(n) {
+  if (!n) return '';
+  let s = '<span class="stars" aria-label="' + n + ' de 5 estrellas">';
+  for (let i = 1; i <= 5; i++) s += `<span class="${i <= n ? 'on' : ''}">★</span>`;
+  return s + '</span>';
+}
+
+function hue(str) {
+  let h = 0;
+  for (const c of String(str)) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+function cover(b, cls = '') {
+  if (b && b.cover) {
+    return `<img class="cover ${cls}" src="${esc(b.cover)}" alt="" loading="lazy" decoding="async" data-ph="${esc(b.title || '')}">`;
+  }
+  return placeholder(b?.title || '', cls);
+}
+function placeholder(title, cls = '') {
+  const h = hue(title);
+  return `<div class="cover ph ${cls}" style="background:linear-gradient(160deg,hsl(${h} 45% 52%),hsl(${(h + 40) % 360} 50% 34%))">${esc(title)}</div>`;
+}
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.tagName === 'IMG' && img.classList.contains('cover')) {
+    const extra = [...img.classList].filter((c) => c !== 'cover').join(' ');
+    img.outerHTML = placeholder(img.dataset.ph || '', extra);
+  }
+}, true);
+
+function ring(pct, size, stroke) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(1, pct || 0));
+  const off = c * (1 - p);
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle class="ring-track" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}"/>
+    <circle class="ring-fill" cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" stroke-dasharray="${c}" stroke-dashoffset="${off}" style="--c:${c}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
+  </svg>`;
+}
+
+/* ---------- Datos ---------- */
+function buildIndex() {
+  S.index = new Map();
+  const d = S.data;
+  if (!d) return;
+  for (const b of d.toRead || []) S.index.set(b.id, { shelf: 'toread', book: b });
+  for (const b of d.read || []) S.index.set(b.id, { shelf: 'read', book: b });
+  for (const b of d.reading || []) S.index.set(b.id, { shelf: 'reading', book: b });
+}
+buildIndex();
+
+function yearOf(b) { return b.readAt ? new Date(b.readAt).getFullYear() : null; }
+function booksOfYear(y) { return (S.data?.read || []).filter((b) => yearOf(b) === y); }
+const thisYear = () => new Date().getFullYear();
+
+function currentChallenge() {
+  const y = thisYear();
+  const ch = (S.data?.challenges || []).find((c) => c.year === y);
+  return ch || { year: y, goal: null, read: booksOfYear(y).length };
+}
+
+function pace(ch) {
+  if (!ch.goal) return null;
+  if (ch.read >= ch.goal) return { cls: 'ok', icon: ICON.check, text: 'Meta cumplida' };
+  const now = new Date();
+  const start = new Date(ch.year, 0, 1);
+  const end = new Date(ch.year + 1, 0, 1);
+  if (ch.year < now.getFullYear()) return { cls: '', icon: '', text: `Faltaron ${plural(ch.goal - ch.read, 'libro', 'libros')}` };
+  const frac = Math.min(1, (now - start) / (end - start));
+  const diff = ch.read - ch.goal * frac;
+  const n = Math.round(Math.abs(diff));
+  if (n === 0) return { cls: 'ok', icon: '', text: 'Al día con la meta' };
+  return diff > 0
+    ? { cls: 'ok', icon: '', text: `${plural(n, 'libro', 'libros')} adelantado` }
+    : { cls: 'warn', icon: '', text: `${plural(n, 'libro', 'libros')} atrasado` };
+}
+
+function daysLeft(year) {
+  const end = new Date(year + 1, 0, 1);
+  return Math.max(0, Math.ceil((end - new Date()) / 86400000));
+}
+
+async function load({ manual = false } = {}) {
+  if (S.loading) return;
+  S.loading = true;
+  S.manual = manual;
+  S.error = null;
+  ptr(manual);
+  if (!S.data) render();
+  try {
+    const r = await fetch(`${API}/library${manual ? '?t=' + Date.now() : ''}`);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Error de servidor');
+    S.data = j;
+    store.set(K.data, j);
+    buildIndex();
+    if (manual) toast('Actualizado');
+  } catch (e) {
+    S.error = navigator.onLine === false ? 'Sin conexión' : 'No se pudo actualizar desde Goodreads';
+    if (manual || !S.data) toast(S.error);
+  } finally {
+    S.loading = false;
+    S.manual = false;
+    ptr(false);
+    if (S.tab !== 'search') render(true);
+    else refreshHeader();
+  }
+}
+
+/* ---------- Vistas ---------- */
+function header(title, sub, withAvatar = true) {
+  const u = S.data?.user;
+  const av = withAvatar
+    ? `<button class="avatar" data-action="profile" aria-label="Perfil">${u?.avatar ? `<img src="${esc(u.avatar)}" alt="">` : esc((u?.name || 'L')[0])}</button>`
+    : '';
+  return `<header class="lt"><div class="lt-row"><h1>${esc(title)}</h1>${av}</div><p class="lt-sub" id="ltsub">${sub}</p></header>`;
+}
+function updatedLine() {
+  if (S.loading && !S.data) return 'Conectando con Goodreads…';
+  if (S.loading) return 'Actualizando…';
+  if (!S.data) return '';
+  const base = `Actualizado ${ago(S.data.updatedAt)}`;
+  return S.error ? `${esc(S.error)} · <button data-action="refresh">Reintentar</button>` : `<button data-action="refresh">${base}</button>`;
+}
+function refreshHeader() {
+  const el = $('#ltsub');
+  if (el && S.tab !== 'search' && S.tab !== 'toread') el.innerHTML = updatedLine();
+}
+
+function loadingView(title) {
+  return `${header(title, updatedLine())}
+    <div class="card hero"><div class="skel" style="width:112px;height:112px;border-radius:50%"></div>
+    <div style="flex:1"><div class="skel" style="height:12px;width:40%"></div><div class="skel" style="height:22px;width:80%;margin-top:10px"></div><div class="skel" style="height:24px;width:55%;margin-top:12px;border-radius:999px"></div></div></div>
+    <div class="sec"><div class="skel" style="height:24px;width:46%;margin:0 4px 12px"></div>
+    ${[0, 1].map(() => `<div class="card book-card"><div class="skel" style="width:76px;height:114px;border-radius:5px"></div><div style="flex:1"><div class="skel" style="height:18px;width:80%"></div><div class="skel" style="height:14px;width:50%;margin-top:10px"></div><div class="skel" style="height:6px;width:100%;margin-top:50px"></div></div></div>`).join('')}</div>`;
+}
+function errorView(title) {
+  return `${header(title, '')}
+    <div class="empty">${ICON.wifi}<h3>No hay conexión con Goodreads</h3><p>Revisa tu conexión a internet e inténtalo de nuevo.</p>
+    <button class="btn tint" data-action="refresh">${ICON.refresh}Reintentar</button></div>`;
+}
+
+function challengeHero(ch) {
+  const p = pace(ch);
+  const pct = ch.goal ? ch.read / ch.goal : 0;
+  const left = ch.goal ? Math.max(0, ch.goal - ch.read) : 0;
+  const foot = ch.goal
+    ? left > 0
+      ? `Faltan ${plural(left, 'libro', 'libros')} · quedan ${plural(daysLeft(ch.year), 'día', 'días')}`
+      : `${fmtNum(Math.round(pct * 100))} % de la meta`
+    : 'Sin meta definida en Goodreads';
+  return `<button class="card hero" data-action="year" data-year="${ch.year}" style="width:100%;text-align:left">
+    <div class="ring-wrap">${ring(pct, 112, 12)}<div class="center"><div class="big">${fmtNum(ch.read)}</div><div class="small">${ch.goal ? 'de ' + fmtNum(ch.goal) : 'libros'}</div></div></div>
+    <div class="txt">
+      <div class="eyebrow">Desafío ${ch.year}</div>
+      <h3>${ch.goal ? `${fmtNum(ch.read)} de ${plural(ch.goal, 'libro', 'libros')}` : plural(ch.read, 'libro leído', 'libros leídos')}</h3>
+      ${p ? `<span class="pill ${p.cls}">${p.icon}${p.text}</span>` : ''}
+      <div class="foot">${foot}</div>
+    </div>
+  </button>`;
+}
+
+function progressInfo(b) {
+  const pr = b.progress;
+  if (!pr || pr.percent == null) return `<div class="prog"><div class="prog-row"><span>Empezado el ${fmtDate(b.addedAt)}</span></div></div>`;
+  const right = pr.page ? `Pág. ${fmtNum(pr.page)} de ${fmtNum(pr.of)}` : pr.updatedAt ? `Actualizado ${fmtDate(pr.updatedAt)}` : '';
+  return `<div class="prog"><div class="bar"><i style="width:${pr.percent}%"></i></div>
+    <div class="prog-row"><b>${pr.percent} %</b><span>${right}</span></div></div>`;
+}
+
+function viewReading() {
+  if (!S.data) return S.loading ? loadingView('Leyendo') : errorView('Leyendo');
+  const d = S.data;
+  const ch = currentChallenge();
+  const reading = d.reading || [];
+  const recent = (d.read || []).slice(0, 12);
+  return `${header('Leyendo', updatedLine())}
+    ${challengeHero(ch)}
+    <section class="sec">
+      <div class="sec-h"><h2>Leyendo ahora</h2><span>${reading.length || ''}</span></div>
+      ${reading.length ? reading.map((b) => `
+        <button class="card book-card" data-action="book" data-id="${esc(b.id)}">
+          ${cover(b)}
+          <div class="info">
+            <h3 class="title t-serif">${esc(b.title)}</h3>
+            ${b.series ? `<p class="series">${esc(b.series)}</p>` : ''}
+            <p class="author">${esc(b.author)}</p>
+            ${progressInfo(b)}
+          </div>
+        </button>`).join('') : `<div class="card empty" style="padding:28px">${ICON.book}<p>No tienes libros en lectura.</p></div>`}
+    </section>
+    ${recent.length ? `<section class="sec">
+      <div class="sec-h"><h2>Leídos recientemente</h2></div>
+      <div class="shelf">${recent.map((b) => `
+        <button class="shelf-item" data-action="book" data-id="${esc(b.id)}">${cover(b)}<div class="t">${esc(b.title)}</div>${stars(b.userRating)}</button>`).join('')}
+      </div></section>` : ''}`;
+}
+
+function monthBars(year) {
+  const counts = Array(12).fill(0);
+  for (const b of booksOfYear(year)) counts[new Date(b.readAt).getMonth()]++;
+  const max = Math.max(1, ...counts);
+  const nowM = year === thisYear() ? new Date().getMonth() : -1;
+  const L = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+  return `<div class="card months" aria-label="Libros por mes">${counts.map((c, i) => `
+    <div class="month ${i === nowM ? 'now' : ''}" title="${c}"><i class="${c ? 'has' : ''}" style="height:${c ? Math.max(10, (c / max) * 100) : 6}%;animation-delay:${i * 30}ms"></i><span>${L[i]}</span></div>`).join('')}</div>`;
+}
+
+function yearStats(year, readCount) {
+  const books = booksOfYear(year);
+  const pages = books.reduce((s, b) => s + (b.pages || 0), 0);
+  const rated = books.filter((b) => b.userRating);
+  const avg = rated.length ? rated.reduce((s, b) => s + b.userRating, 0) / rated.length : null;
+  return `<div class="tiles">
+    <div class="tile"><div class="k">Libros</div><div class="v">${fmtNum(readCount)}</div></div>
+    <div class="tile"><div class="k">Páginas</div><div class="v">${pages ? (pages >= 10000 ? fmtNum(Math.round(pages / 1000)) + '<small>mil</small>' : fmtNum(pages)) : '—'}</div></div>
+    <div class="tile"><div class="k">Tu nota</div><div class="v">${avg ? avg.toLocaleString('es-CL', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + '<small>★</small>' : '—'}</div></div>
+  </div>`;
+}
+
+function viewChallenges() {
+  if (!S.data) return S.loading ? loadingView('Desafíos') : errorView('Desafíos');
+  const ch = currentChallenge();
+  const past = (S.data.challenges || []).filter((c) => c.year !== ch.year);
+  const withGoal = (S.data.challenges || []).filter((c) => c.goal);
+  const done = withGoal.filter((c) => c.read >= c.goal).length;
+  const p = pace(ch);
+  const pct = ch.goal ? ch.read / ch.goal : 0;
+  return `${header('Desafíos', withGoal.length ? `${done} de ${plural(withGoal.length, 'desafío cumplido', 'desafíos cumplidos')}` : 'Desafío de lectura de Goodreads')}
+    <button class="card big-hero" data-action="year" data-year="${ch.year}" style="width:100%">
+      <div class="eyebrow">Desafío ${ch.year}</div>
+      <div class="ring-wrap" style="margin-top:14px">${ring(pct, 168, 16)}<div class="center"><div class="big">${fmtNum(ch.read)}</div><div class="small">${ch.goal ? 'de ' + plural(ch.goal, 'libro', 'libros') : 'libros'}</div></div></div>
+      <h3>${ch.goal ? `${fmtNum(Math.min(999, Math.round(pct * 100)))} % de la meta` : 'Sin meta definida'}</h3>
+      ${p ? `<span class="pill ${p.cls}">${p.icon}${p.text}</span>` : ''}
+      ${ch.goal && ch.read < ch.goal ? `<p class="note">Faltan ${plural(ch.goal - ch.read, 'libro', 'libros')} y quedan ${plural(daysLeft(ch.year), 'día', 'días')}</p>` : ''}
+    </button>
+    ${yearStats(ch.year, ch.read)}
+    <section class="sec"><div class="sec-h"><h2>Por mes</h2><span>${ch.year}</span></div>${monthBars(ch.year)}</section>
+    ${past.length ? `<section class="sec"><div class="sec-h"><h2>Años anteriores</h2></div>
+      <div class="list">${past.map((c) => {
+        const ok = c.goal && c.read >= c.goal;
+        const cp = c.goal ? Math.min(100, (c.read / c.goal) * 100) : 0;
+        return `<button class="row year-row" data-action="year" data-year="${c.year}">
+          <div class="y">${c.year}</div>
+          <div class="info">
+            <div class="line"><span>${c.goal ? `${fmtNum(c.read)} de ${fmtNum(c.goal)}` : plural(c.read, 'libro', 'libros')}</span><span class="muted">${c.goal ? Math.round((c.read / c.goal) * 100) + ' %' : 'sin meta'}</span></div>
+            ${c.goal ? `<div class="bar"><i style="width:${cp}%"></i></div>` : ''}
+          </div>
+          ${ok ? `<span class="check" aria-label="Cumplido">${ICON.check}</span>` : `<span class="dot-miss">${ICON.chev}</span>`}
+        </button>`;
+      }).join('')}</div></section>` : ''}`;
+}
+
+function bookRow(b, badge = '') {
+  const meta = [
+    b.avgRating ? `<span><span class="star">★</span> ${fmtRating(b.avgRating)}</span>` : '',
+    b.pages ? `<span>${fmtNum(b.pages)} págs.</span>` : '',
+    b.published ? `<span>${esc(b.published)}</span>` : '',
+    badge,
+  ].filter(Boolean).join('');
+  return `<button class="row" data-action="book" data-id="${esc(b.id)}">
+    ${cover(b)}
+    <div class="info"><div class="title">${esc(b.title)}</div><div class="author">${esc(b.author)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
+    ${ICON.chev}
+  </button>`;
+}
+
+function viewToRead() {
+  if (!S.data) return S.loading ? loadingView('Quiero leer') : errorView('Quiero leer');
+  const list = [...(S.data.toRead || [])];
+  const coll = new Intl.Collator('es', { sensitivity: 'base' });
+  const surname = (a) => (a || '').trim().split(/\s+/).pop();
+  if (S.sort === 'title') list.sort((a, b) => coll.compare(a.title, b.title));
+  else if (S.sort === 'author') list.sort((a, b) => coll.compare(surname(a.author), surname(b.author)) || coll.compare(a.title, b.title));
+  const pages = list.reduce((s, b) => s + (b.pages || 0), 0);
+  const sub = `${plural(list.length, 'libro', 'libros')}${pages ? ` · ${fmtNum(pages)} páginas` : ''}`;
+  return `${header('Quiero leer', sub)}
+    <div class="seg" role="tablist">
+      ${[['recent', 'Recientes'], ['title', 'Título'], ['author', 'Autor']].map(([k, l]) => `<button class="${S.sort === k ? 'on' : ''}" data-action="sort" data-sort="${k}">${l}</button>`).join('')}
+    </div>
+    ${list.length ? `<div class="list">${list.map((b) => bookRow(b)).join('')}</div>`
+      : `<div class="empty">${ICON.mark}<h3>Tu lista está vacía</h3><p>Los libros que marques como “Quiero leer” en Goodreads aparecerán aquí.</p></div>`}`;
+}
+
+function viewSearch() {
+  return `${header('Buscar', 'En toda la base de Goodreads', false)}
+    <form class="search" id="searchForm" role="search" autocomplete="off">
+      ${ICON.search}
+      <input id="q" type="search" enterkeyhint="search" placeholder="Títulos, autores o ISBN" value="${esc(S.q)}" aria-label="Buscar libros">
+      <button type="button" class="clear ${S.q ? 'show' : ''}" data-action="clear" aria-label="Borrar">${ICON.x}</button>
+    </form>
+    <div id="results">${resultsHTML()}</div>`;
+}
+
+function shelfBadge(id) {
+  const s = S.index.get(id);
+  if (!s) return '';
+  if (s.shelf === 'read') return '<span class="badge read">Leído</span>';
+  if (s.shelf === 'reading') return '<span class="badge reading">Leyendo</span>';
+  return '<span class="badge">Quiero leer</span>';
+}
+
+function resultsHTML() {
+  if (S.searching) {
+    return `<div class="list">${[0, 1, 2, 3].map(() => `<div class="row"><div class="skel" style="width:46px;height:70px;border-radius:4px"></div><div class="info"><div class="skel" style="height:15px;width:75%"></div><div class="skel" style="height:12px;width:45%;margin-top:9px"></div></div></div>`).join('')}</div>`;
+  }
+  if (S.searchError) return `<div class="empty">${ICON.wifi}<h3>Búsqueda no disponible</h3><p>${esc(S.searchError)}</p><button class="btn soft" data-action="research">${ICON.refresh}Reintentar</button></div>`;
+  if (S.results && !S.results.length) return `<div class="empty">${ICON.search}<h3>Sin resultados</h3><p>No se encontraron libros para “${esc(S.q)}”.</p></div>`;
+  if (S.results) return `<div class="sec-h" style="padding-top:2px"><span>${plural(S.results.length, 'resultado', 'resultados')}</span></div><div class="list">${S.results.map((b) => bookRow(b, shelfBadge(b.id))).join('')}</div>`;
+  if (S.recent.length) {
+    return `<div class="sec-h"><h2>Recientes</h2><button data-action="clear-recent">Borrar</button></div>
+      <div class="chips">${S.recent.map((q) => `<button class="chip" data-action="recent" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`;
+  }
+  return `<div class="empty">${ICON.search}<h3>Busca en Goodreads</h3><p>Encuentra cualquier libro por su título, autor o ISBN.</p></div>`;
+}
+
+const VIEWS = { reading: viewReading, challenges: viewChallenges, toread: viewToRead, search: viewSearch };
+const TITLES = { reading: 'Leyendo', challenges: 'Desafíos', toread: 'Quiero leer', search: 'Buscar' };
+
+function render(keepScroll) {
+  const y = window.scrollY;
+  $('#view').innerHTML = VIEWS[S.tab]();
+  if (!keepScroll) $('#view').style.animation = 'none', void $('#view').offsetWidth, ($('#view').style.animation = '');
+  document.querySelectorAll('[data-tab]').forEach((b) => {
+    const on = b.dataset.tab === S.tab;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on);
+  });
+  $('#topTitle').textContent = TITLES[S.tab];
+  if (keepScroll) window.scrollTo(0, y);
+  if (S.tab === 'search') bindSearch();
+  onScroll();
+}
+
+function switchTab(tab) {
+  if (tab === S.tab) {
+    if (tab === 'search') $('#q')?.focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  S.scroll[S.tab] = window.scrollY;
+  S.tab = tab;
+  store.set(K.tab, tab);
+  render();
+  window.scrollTo(0, S.scroll[tab] || 0);
+}
+
+/* ---------- Buscar ---------- */
+let searchTimer = null;
+let searchSeq = 0;
+function bindSearch() {
+  const input = $('#q');
+  const form = $('#searchForm');
+  input.addEventListener('input', () => {
+    S.q = input.value;
+    $('.clear').classList.toggle('show', !!S.q);
+    clearTimeout(searchTimer);
+    if (S.q.trim().length >= 3) searchTimer = setTimeout(() => runSearch(false), 500);
+    else if (!S.q.trim()) { S.results = null; S.searchError = null; S.searching = false; $('#results').innerHTML = resultsHTML(); }
+  });
+  form.addEventListener('submit', (e) => { e.preventDefault(); clearTimeout(searchTimer); runSearch(true); input.blur(); });
+  if (!S.q && !S.results) setTimeout(() => input.focus({ preventScroll: true }), 350);
+}
+async function runSearch(remember) {
+  const q = S.q.trim();
+  if (q.length < 2) return;
+  const seq = ++searchSeq;
+  S.searching = true;
+  S.searchError = null;
+  $('#results').innerHTML = resultsHTML();
+  try {
+    const r = await fetch(`${API}/search?q=${encodeURIComponent(q)}`);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Goodreads no respondió.');
+    if (seq !== searchSeq) return;
+    S.results = j.results || [];
+    if (remember || S.results.length) {
+      S.recent = [q, ...S.recent.filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 8);
+      store.set(K.recent, S.recent);
+    }
+  } catch (e) {
+    if (seq !== searchSeq) return;
+    S.results = null;
+    S.searchError = navigator.onLine === false ? 'Sin conexión a internet.' : e.message;
+  } finally {
+    if (seq === searchSeq) {
+      S.searching = false;
+      if (S.tab === 'search') $('#results').innerHTML = resultsHTML();
+    }
+  }
+}
+
+/* ---------- Hojas ---------- */
+let lockY = 0;
+function lock() { lockY = window.scrollY; document.body.style.top = `-${lockY}px`; document.body.classList.add('locked'); }
+function unlock() { document.body.classList.remove('locked'); document.body.style.top = ''; window.scrollTo(0, lockY); }
+
+function openSheet(html, key) {
+  const root = $('#sheet-root');
+  const already = root.classList.contains('open');
+  root.innerHTML = `<div class="backdrop" data-action="close"></div>
+    <section class="sheet" role="dialog" aria-modal="true" data-key="${esc(key)}">
+      <div class="grabber"></div>
+      <button class="sheet-close" data-action="close" aria-label="Cerrar">${ICON.x}</button>
+      <div class="sheet-body">${html}</div>
+    </section>`;
+  if (!already) {
+    lock();
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('open')));
+  } else {
+    root.classList.add('open');
+  }
+  bindDrag($('.sheet', root));
+}
+function closeSheet() {
+  const root = $('#sheet-root');
+  if (!root.classList.contains('open')) return;
+  root.classList.remove('open');
+  unlock();
+  setTimeout(() => { if (!root.classList.contains('open')) root.innerHTML = ''; }, 450);
+}
+function bindDrag(sheet) {
+  const body = $('.sheet-body', sheet);
+  let y0 = null, dy = 0, t0 = 0;
+  sheet.addEventListener('touchstart', (e) => {
+    if (body.contains(e.target) && body.scrollTop > 0) return;
+    y0 = e.touches[0].clientY; dy = 0; t0 = Date.now();
+  }, { passive: true });
+  sheet.addEventListener('touchmove', (e) => {
+    if (y0 == null) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy > 0 && body.scrollTop <= 0) {
+      sheet.classList.add('dragging');
+      sheet.style.transform = `translateY(${dy}px)`;
+      if (e.cancelable) e.preventDefault();
+    }
+  }, { passive: false });
+  sheet.addEventListener('touchend', () => {
+    if (y0 == null) return;
+    sheet.classList.remove('dragging');
+    const v = dy / Math.max(1, Date.now() - t0);
+    sheet.style.transform = '';
+    if (dy > 130 || (dy > 40 && v > .6)) closeSheet();
+    y0 = null;
+  });
+}
+
+function findBook(id) {
+  return S.index.get(id)?.book || S.results?.find((b) => b.id === id) || S.extra.get(id) || null;
+}
+
+function bookSheet(b) {
+  const st = S.index.get(b.id);
+  let status = '';
+  if (st?.shelf === 'reading') {
+    const pr = b.progress;
+    status = `<div class="status"><span class="ico">${ICON.book}</span><div style="flex:1;min-width:0"><b>Leyendo${pr?.percent != null ? ` · ${pr.percent} %` : ''}</b>
+      <span>${pr?.page ? `Página ${fmtNum(pr.page)} de ${fmtNum(pr.of)}` : `Desde el ${fmtDate(b.addedAt, true)}`}</span>
+      ${pr?.percent != null ? `<div class="bar"><i style="width:${pr.percent}%"></i></div>` : ''}</div></div>`;
+  } else if (st?.shelf === 'read') {
+    status = `<div class="status"><span class="ico g">${ICON.check}</span><div><b>Leído${b.readAt ? ` el ${fmtDate(b.readAt, true)}` : ''}</b>
+      <span>${b.userRating ? `Tu nota: ${stars(b.userRating)}` : 'Sin calificar'}</span></div></div>`;
+  } else if (st?.shelf === 'toread') {
+    status = `<div class="status"><span class="ico">${ICON.mark}</span><div><b>En Quiero leer</b><span>Agregado el ${fmtDate(b.addedAt, true)}</span></div></div>`;
+  }
+  const facts = [
+    b.avgRating ? ['Promedio', `★ ${fmtRating(b.avgRating)}`] : null,
+    b.pages ? ['Páginas', fmtNum(b.pages)] : null,
+    b.published ? ['Publicado', esc(b.published)] : null,
+  ].filter(Boolean);
+  const desc = b.description || '';
+  return `<article class="bk">
+    ${cover(b)}
+    <h2>${esc(b.title)}</h2>
+    ${b.series ? `<p class="series">${esc(b.series)}</p>` : ''}
+    <p class="author">${esc(b.author)}</p>
+    ${b.genres?.length ? `<div class="genres">${b.genres.map((g) => `<span>${esc(g)}</span>`).join('')}</div>` : ''}
+    ${facts.length ? `<div class="facts">${facts.map(([k, v]) => `<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')}</div>` : ''}
+    ${status}
+    ${desc ? `<p class="desc ${desc.length > 320 ? 'clamp' : ''}" id="desc">${esc(desc)}</p>${desc.length > 320 ? '<button class="more" data-action="more">Más</button>' : ''}`
+      : b._loading ? '<div class="skel" style="height:14px;margin-top:20px"></div><div class="skel" style="height:14px;margin-top:8px;width:85%"></div>' : ''}
+    <a class="btn soft block" href="${esc(b.url)}" target="_blank" rel="noopener">${ICON.ext}Abrir en Goodreads</a>
+  </article>`;
+}
+
+async function openBook(id) {
+  const b = findBook(id);
+  if (!b) return;
+  const needs = !b.description || (!b.pages && !b._fetched);
+  if (needs && !b._fetched) b._loading = true;
+  openSheet(bookSheet(b), 'book:' + id);
+  if (!needs || b._fetched) return;
+  try {
+    const r = await fetch(`${API}/book?id=${encodeURIComponent(id)}`);
+    if (r.ok) {
+      const x = await r.json();
+      for (const k of ['description', 'pages', 'avgRating', 'genres', 'cover', 'series']) {
+        if (x[k] && (!b[k] || (k === 'description' && b.descriptionTruncated))) b[k] = x[k];
+      }
+    }
+  } catch {}
+  b._fetched = true;
+  b._loading = false;
+  const sheet = $('.sheet');
+  if (sheet && sheet.dataset.key === 'book:' + id) $('.sheet-body').innerHTML = bookSheet(b);
+}
+
+function openYear(year) {
+  const ch = (S.data?.challenges || []).find((c) => c.year === year) || { year, goal: null, read: booksOfYear(year).length };
+  const books = booksOfYear(year);
+  const pct = ch.goal ? ch.read / ch.goal : 0;
+  const p = pace(ch);
+  const html = `<div class="big-hero" style="padding-top:6px">
+      <div class="eyebrow">Desafío ${year}</div>
+      <div class="ring-wrap" style="margin-top:14px">${ring(pct, 150, 15)}<div class="center"><div class="big" style="font-size:42px">${fmtNum(ch.read)}</div><div class="small">${ch.goal ? 'de ' + plural(ch.goal, 'libro', 'libros') : 'libros'}</div></div></div>
+      ${p ? `<span class="pill ${p.cls}">${p.icon}${p.text}</span>` : '<span class="pill">Sin meta definida</span>'}
+    </div>
+    ${yearStats(year, ch.read)}
+    ${books.length ? `<div class="grid">${books.map((b) => `<button class="shelf-item" data-action="book" data-id="${esc(b.id)}">${cover(b)}<div class="t">${esc(b.title)}</div>${stars(b.userRating)}</button>`).join('')}</div>
+      ${books.length < ch.read ? `<p class="note" style="text-align:center">Se muestran ${fmtNum(books.length)} de ${fmtNum(ch.read)} libros con fecha de lectura registrada.</p>` : ''}`
+      : `<p class="note" style="text-align:center;margin-top:20px">No hay libros con fecha de lectura en ${year}.</p>`}
+    ${ch.url ? `<a class="btn soft block" href="${esc(ch.url)}" target="_blank" rel="noopener">${ICON.ext}Ver desafío en Goodreads</a>` : ''}`;
+  openSheet(html, 'year:' + year);
+}
+
+function openProfile() {
+  const d = S.data;
+  if (!d) return;
+  const u = d.user || {};
+  const html = `<div class="prof">
+      <div class="avatar">${u.avatar ? `<img src="${esc(u.avatar)}" alt="">` : esc((u.name || 'L')[0])}</div>
+      <h2>${esc(u.name || 'Lector')}</h2>
+      <p class="muted" style="margin-top:4px;font-size:15px">Actualizado ${ago(d.updatedAt)}</p>
+    </div>
+    <div class="list inner">
+      <div class="row"><span style="flex:1">Leídos</span><span class="v">${fmtNum((d.read || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Leyendo</span><span class="v">${fmtNum((d.reading || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Quiero leer</span><span class="v">${fmtNum((d.toRead || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Desafíos</span><span class="v">${fmtNum((d.challenges || []).filter((c) => c.goal).length)}</span></div>
+    </div>
+    <button class="btn tint block" data-action="refresh-close">${ICON.refresh}Actualizar ahora</button>
+    <a class="btn gray block" style="margin-top:10px" href="${esc(u.url || 'https://www.goodreads.com')}" target="_blank" rel="noopener">${ICON.ext}Perfil en Goodreads</a>`;
+  openSheet(html, 'profile');
+}
+
+/* ---------- Interacción ---------- */
+document.addEventListener('click', (e) => {
+  const tabBtn = e.target.closest('[data-tab]');
+  if (tabBtn) return switchTab(tabBtn.dataset.tab);
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  if (a === 'book') openBook(el.dataset.id);
+  else if (a === 'year') openYear(Number(el.dataset.year));
+  else if (a === 'profile') openProfile();
+  else if (a === 'close') closeSheet();
+  else if (a === 'refresh') load({ manual: true });
+  else if (a === 'refresh-close') { closeSheet(); load({ manual: true }); }
+  else if (a === 'sort') { S.sort = el.dataset.sort; store.set(K.sort, S.sort); render(true); }
+  else if (a === 'more') { $('#desc')?.classList.remove('clamp'); el.remove(); }
+  else if (a === 'clear') { S.q = ''; S.results = null; S.searchError = null; $('#q').value = ''; el.classList.remove('show'); $('#results').innerHTML = resultsHTML(); $('#q').focus(); }
+  else if (a === 'recent') { S.q = el.dataset.q; $('#q').value = S.q; $('.clear').classList.add('show'); runSearch(true); }
+  else if (a === 'clear-recent') { S.recent = []; store.set(K.recent, []); $('#results').innerHTML = resultsHTML(); }
+  else if (a === 'research') runSearch(true);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+function ptr(show) { $('#ptr').classList.toggle('show', !!show); }
+
+// Barra superior compacta y "tirar para actualizar"
+let armed = false;
+function onScroll() {
+  const y = window.scrollY;
+  $('#topbar').classList.toggle('show', y > 46);
+  if (y < -70 && !S.loading && S.tab !== 'search') { armed = true; ptr(true); }
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('touchend', () => { if (armed) { armed = false; load({ manual: true }); } }, { passive: true });
+
+// Actualiza solo al volver a la app si pasaron más de 15 minutos
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !S.data) return;
+  if (Date.now() - new Date(S.data.updatedAt) > 15 * 60000) load();
+  else refreshHeader();
+});
+setInterval(refreshHeader, 60000);
+
+render();
+load();
+</script>
+</body>
+</html>

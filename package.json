@@ -1,0 +1,10 @@
+{
+  "name": "lecturas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vista minimalista de mi cuenta de Goodreads, con estética iOS 26.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}

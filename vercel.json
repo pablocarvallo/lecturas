@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/library.js": { "maxDuration": 30 },
+    "api/search.js": { "maxDuration": 20 },
+    "api/book.js": { "maxDuration": 20 }
+  }
+}
