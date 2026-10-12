@@ -52,11 +52,12 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400');
   return res.status(200).json({
     user: { id: USER_ID, name: profile?.name || 'Lector', avatar: profile?.avatar || null, url: `https://www.goodreads.com/user/show/${USER_ID}` },
+    updatedAt: new Date().toISOString(),
+    errors,
+    counts: { reading: reading.length, toRead: toRead.length, read: read.length },
+    challenges: allChallenges,
     reading,
     toRead,
     read,
-    challenges: allChallenges,
-    updatedAt: new Date().toISOString(),
-    errors,
   });
 }
