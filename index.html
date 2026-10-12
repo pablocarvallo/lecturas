@@ -173,7 +173,15 @@ main#view {
 
 /* Leyendo ahora */
 .book-card { display: flex; gap: 14px; padding: 14px; text-align: left; width: 100%; }
-.book-card + .book-card { margin-top: 10px; }
+.book-card + .book-card, .reading-card + .reading-card { margin-top: 10px; }
+.acts { display: flex; gap: 8px; padding: 0 14px 14px; }
+.acts a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 999px; font-size: 15px; font-weight: 600; letter-spacing: -.24px; background: var(--accent-soft); color: var(--accent-text); transition: transform .15s ease; }
+.acts a.done { background: var(--green-soft); color: var(--green); }
+.acts a:active { transform: scale(.97); }
+.acts svg.i { width: 16px; height: 16px; stroke-width: 2.4; }
+.sheet .acts { padding: 0; margin-top: 20px; }
+.sheet .acts a { height: 50px; font-size: 16px; }
+.hint { font-size: 13px; color: var(--label-2); text-align: center; margin-top: 10px; letter-spacing: -.08px; }
 .book-card .cover { width: 76px; height: 114px; }
 .book-card .cover.ph { font-size: 12px; }
 .book-card .info { min-width: 0; flex: 1; display: flex; flex-direction: column; }
@@ -433,6 +441,7 @@ const ICON = {
   wifi: '<svg class="i" viewBox="0 0 24 24"><path d="M2.5 8.8a14 14 0 0 1 19 0M5.6 12.2a9.5 9.5 0 0 1 12.8 0M8.8 15.5a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19" r=".9"/></svg>',
   refresh: '<svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>',
   clock: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  edit: '<svg class="i" viewBox="0 0 24 24"><path d="M4.5 19.5h3.8L19 8.8 15.2 5 4.5 15.7v3.8Z"/><path d="m13.2 7 3.8 3.8"/></svg>',
 };
 
 function stars(n) {
@@ -518,7 +527,7 @@ function daysLeft(year) {
   return Math.max(0, Math.ceil((end - new Date()) / 86400000));
 }
 
-async function load({ manual = false } = {}) {
+async function load({ manual = false, force = manual } = {}) {
   if (S.loading) return;
   S.loading = true;
   S.manual = manual;
@@ -526,7 +535,7 @@ async function load({ manual = false } = {}) {
   ptr(manual);
   if (!S.data) render();
   try {
-    const r = await fetch(`${API}/library${manual ? '?t=' + Date.now() : ''}`);
+    const r = await fetch(`${API}/library${force ? '?t=' + Date.now() : ''}`);
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'Error de servidor');
     S.data = j;
@@ -617,15 +626,18 @@ function viewReading() {
     <section class="sec">
       <div class="sec-h"><h2>Leyendo ahora</h2><span>${reading.length || ''}</span></div>
       ${reading.length ? reading.map((b) => `
-        <button class="card book-card" data-action="book" data-id="${esc(b.id)}">
-          ${cover(b)}
-          <div class="info">
-            <h3 class="title t-serif">${esc(b.title)}</h3>
-            ${b.series ? `<p class="series">${esc(b.series)}</p>` : ''}
-            <p class="author">${esc(b.author)}</p>
-            ${progressInfo(b)}
-          </div>
-        </button>`).join('') : `<div class="card empty" style="padding:28px">${ICON.book}<p>No tienes libros en lectura.</p></div>`}
+        <div class="card reading-card">
+          <button class="book-card" data-action="book" data-id="${esc(b.id)}">
+            ${cover(b)}
+            <div class="info">
+              <h3 class="title t-serif">${esc(b.title)}</h3>
+              ${b.series ? `<p class="series">${esc(b.series)}</p>` : ''}
+              <p class="author">${esc(b.author)}</p>
+              ${progressInfo(b)}
+            </div>
+          </button>
+          ${grActions(b)}
+        </div>`).join('') : `<div class="card empty" style="padding:28px">${ICON.book}<p>No tienes libros en lectura.</p></div>`}
     </section>
     ${recent.length ? `<section class="sec">
       <div class="sec-h"><h2>Leídos recientemente</h2></div>
@@ -915,10 +927,21 @@ function bookSheet(b) {
     ${b.genres?.length ? `<div class="genres">${b.genres.map((g) => `<span>${esc(g)}</span>`).join('')}</div>` : ''}
     ${facts.length ? `<div class="facts">${facts.map(([k, v]) => `<div class="fact"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')}</div>` : ''}
     ${status}
+    ${st?.shelf === 'reading' ? `${grActions(b)}<p class="hint">Se abre el libro en Goodreads. Al volver, Lecturas se actualiza sola.</p>` : ''}
     ${desc ? `<p class="desc ${desc.length > 320 ? 'clamp' : ''}" id="desc">${esc(desc)}</p>${desc.length > 320 ? '<button class="more" data-action="more">Más</button>' : ''}`
       : b._loading ? '<div class="skel" style="height:14px;margin-top:20px"></div><div class="skel" style="height:14px;margin-top:8px;width:85%"></div>' : ''}
-    <a class="btn soft block" href="${esc(b.url)}" target="_blank" rel="noopener">${ICON.ext}Abrir en Goodreads</a>
+    ${st?.shelf === 'reading' ? '' : `<a class="btn soft block" href="${esc(b.url)}" target="_blank" rel="noopener" data-action="sync">${ICON.ext}Abrir en Goodreads</a>`}
   </article>`;
+}
+
+// Goodreads no permite escribir desde otras apps: estos botones abren el libro
+// en la app de Goodreads, donde están "Actualizar progreso" y el estante "Leído".
+function grActions(b) {
+  const url = esc(b.url || `https://www.goodreads.com/book/show/${b.id}`);
+  return `<div class="acts">
+    <a href="${url}" target="_blank" rel="noopener" data-action="sync">${ICON.edit}Actualizar avance</a>
+    <a class="done" href="${url}" target="_blank" rel="noopener" data-action="sync">${ICON.check}Terminé</a>
+  </div>`;
 }
 
 async function openBook(id) {
@@ -1000,6 +1023,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'recent') { S.q = el.dataset.q; $('#q').value = S.q; $('.clear').classList.add('show'); runSearch(true); }
   else if (a === 'clear-recent') { S.recent = []; store.set(K.recent, []); $('#results').innerHTML = resultsHTML(); }
   else if (a === 'research') runSearch(true);
+  else if (a === 'sync') S.pendingSync = Date.now();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
@@ -1023,10 +1047,17 @@ function onScroll() {
 window.addEventListener('scroll', onScroll, { passive: true });
 window.addEventListener('touchend', () => { if (armed) { armed = false; load({ manual: true }); } }, { passive: true });
 
-// Actualiza solo al volver a la app si pasaron más de 15 minutos
+// Al volver a la app: si se abrió Goodreads para actualizar un libro, se refresca de inmediato
+// (y otra vez al minuto, porque los estantes de Goodreads tardan un poco en reflejar el cambio).
+// Si no, solo se actualiza cuando pasaron más de 15 minutos.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || !S.data) return;
-  if (Date.now() - new Date(S.data.updatedAt) > 15 * 60000) load();
+  if (S.pendingSync) {
+    S.pendingSync = 0;
+    closeSheet();
+    setTimeout(() => load({ manual: true }), 800);
+    setTimeout(() => load({ force: true }), 60000);
+  } else if (Date.now() - new Date(S.data.updatedAt) > 15 * 60000) load();
   else refreshHeader();
 });
 setInterval(refreshHeader, 60000);
