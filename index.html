@@ -299,6 +299,8 @@ main#view {
 /* Estrellas */
 .stars { display: inline-flex; gap: 1px; font-size: 11px; letter-spacing: 0; color: var(--label-3); }
 .stars .on { color: var(--accent); }
+.stars .part { background: linear-gradient(90deg, var(--accent) var(--p), var(--label-3) var(--p)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stars-num { font-size: 13px; color: var(--label-2); font-variant-numeric: tabular-nums; }
 
 /* Listas agrupadas */
 .list { background: var(--card); border-radius: var(--radius); overflow: hidden; }
@@ -558,11 +560,17 @@ const ICON = {
   edit: '<svg class="i" viewBox="0 0 24 24"><path d="M4.5 19.5h3.8L19 8.8 15.2 5 4.5 15.7v3.8Z"/><path d="m13.2 7 3.8 3.8"/></svg>',
 };
 
-function stars(n) {
+// Admite notas fraccionarias (Goodreads permite 4¼, 3½, etc.): la estrella parcial se rellena en proporción.
+function stars(n, withNumber = false) {
   if (!n) return '';
-  let s = '<span class="stars" aria-label="' + n + ' de 5 estrellas">';
-  for (let i = 1; i <= 5; i++) s += `<span class="${i <= n ? 'on' : ''}">★</span>`;
-  return s + '</span>';
+  const label = Number(n).toLocaleString('es-CL', { maximumFractionDigits: 2 });
+  let s = `<span class="stars" aria-label="${label} de 5 estrellas">`;
+  for (let i = 1; i <= 5; i++) {
+    const fill = Math.max(0, Math.min(1, n - (i - 1)));
+    s += fill >= 1 ? '<span class="on">★</span>' : fill > 0 ? `<span class="part" style="--p:${Math.round(fill * 100)}%">★</span>` : '<span>★</span>';
+  }
+  s += '</span>';
+  return withNumber && n % 1 ? `${s} <span class="stars-num">${label}</span>` : s;
 }
 
 function hue(str) {
@@ -1023,7 +1031,7 @@ function bookSheet(b) {
       ${pr?.percent != null ? `<div class="bar"><i style="width:${pr.percent}%"></i></div>` : ''}</div></div>`;
   } else if (st?.shelf === 'read') {
     status = `<div class="status"><span class="ico g">${ICON.check}</span><div><b>Leído${b.year ? ` en ${b.year}` : ''}</b>
-      <span>${b.userRating ? `Tu nota: ${stars(b.userRating)}` : 'Sin calificar'}</span></div></div>`;
+      <span>${b.userRating ? `Tu nota: ${stars(b.userRating, true)}` : 'Sin calificar'}</span></div></div>`;
   } else if (st?.shelf === 'toread') {
     status = `<div class="status"><span class="ico">${ICON.mark}</span><div><b>En Quiero leer</b><span>Está en tu lista de Goodreads</span></div></div>`;
   }

@@ -135,6 +135,20 @@ export function parseCustomWidget(js = '') {
     const titleText = htmlToText((blk.match(/gr_custom_title[^>]*>[\s\S]*?<a\b[^>]*>([\s\S]*?)<\/a>/) || [])[1] || '');
     const author = htmlToText((blk.match(/gr_custom_author[^>]*>[\s\S]*?<a\b[^>]*>([\s\S]*?)<\/a>/) || [])[1] || '');
     const ratingWord = ((blk.match(/staticStars[^"]*"[^>]*\stitle="([^"]+)"/) || [])[1] || '').toLowerCase();
+    // Goodreads admite notas fraccionarias (p. ej. 4¼): en ese caso no hay texto, solo estrellas
+    // llenas (…star_active.png), parciales (…star_25pct.png) y vacías (…star_inactive.png).
+    const ratingDiv = (blk.match(/gr_custom_rating[\s\S]*?<\/div>/) || [''])[0];
+    let starSum = 0;
+    let starImgs = 0;
+    for (const m of ratingDiv.matchAll(/<img\b[^>]*\ssrc="([^"]+)"/g)) {
+      if (/star_/.test(m[1])) starImgs++;
+      if (/star_active/.test(m[1])) starSum += 1;
+      else {
+        const part = m[1].match(/star_(\d{1,2})pct/);
+        if (part) starSum += Number(part[1]) / 100;
+      }
+    }
+    const stars = starImgs === 5 && starSum > 0 ? Math.round(starSum * 4) / 4 : null;
     const id = idFromCover(src);
     const { title, series } = splitSeries(fullTitle || titleText);
     if (!title) continue;
@@ -145,7 +159,7 @@ export function parseCustomWidget(js = '') {
       series,
       author,
       cover: bigCover(src),
-      userRating: RATING_WORDS[ratingWord] || null,
+      userRating: stars || RATING_WORDS[ratingWord] || null,
       url: id ? `${BASE}/book/show/${id}` : reviewId ? `${BASE}/review/show/${reviewId}` : `${BASE}/user/show/${USER_ID}`,
     });
   }
