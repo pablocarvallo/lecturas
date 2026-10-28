@@ -1,5 +1,12 @@
 // Utilidades compartidas para leer datos públicos de Goodreads.
 // Vercel no publica como ruta los archivos de /api que empiezan con "_".
+//
+// Fuentes (octubre 2026): Goodreads eliminó los RSS de los estantes y la lista
+// completa de un estante exige iniciar sesión. Lo que sigue siendo público:
+//   · el widget para blogs (review/custom_widget): leyendo, quiero leer y los
+//     últimos 100 leídos con la nota del usuario, sin fechas;
+//   · las páginas de cada desafío anual (user_challenges/ID): conteo y libros del año;
+//   · el perfil (user/show): avance de lectura y cantidad de libros por estante.
 
 export const USER_ID = process.env.GOODREADS_USER_ID || '90308354';
 const BASE = 'https://www.goodreads.com';
@@ -35,6 +42,7 @@ export async function get(url, { timeout = 12000, accept } = {}) {
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
+    if (/\/sign_in|\/ap\/signin/.test(res.url)) throw new Error(`Goodreads pide iniciar sesión para ${url}`);
     return { text: await res.text(), url: res.url };
   } finally {
     clearTimeout(timer);
@@ -43,18 +51,13 @@ export async function get(url, { timeout = 12000, accept } = {}) {
 
 // ---------- Texto ----------
 
-const NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', mdash: '—', ndash: '–', hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“' };
+const NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', mdash: '—', ndash: '–', hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', lrm: '' };
 
 export function decode(s = '') {
   return String(s)
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
     .replace(/&([a-z]+);/gi, (m, n) => (n.toLowerCase() in NAMED ? NAMED[n.toLowerCase()] : m));
-}
-
-export function stripCdata(s = '') {
-  const m = String(s).match(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/);
-  return m ? m[1] : s;
 }
 
 // Convierte HTML simple en texto plano conservando saltos de párrafo.
@@ -65,7 +68,7 @@ export function htmlToText(html = '') {
       .replace(/<\/p>\s*/gi, '\n\n')
       .replace(/<[^>]+>/g, '')
   )
-    .replace(/ /g, ' ')
+    .replace(/[ ‎‏]/g, ' ')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -87,6 +90,11 @@ export function bigCover(url = '') {
     .replace(/(\/books\/\d+)[sm](\/\d+\.jpg)/, '$1l$2');
 }
 
+// El nombre del archivo de la portada es el identificador del libro: …/books/1266724005l/1124818._SX98_.jpg
+export function idFromCover(url = '') {
+  return (String(url).match(/\/books\/\d+[a-z]?\/(\d+)[._]/) || [])[1] || null;
+}
+
 function toIso(s) {
   if (!s) return null;
   const d = new Date(s);
@@ -99,91 +107,76 @@ function num(s) {
   return isNaN(n) ? null : n;
 }
 
-// ---------- RSS de estantes ----------
+// Quita el escapado de cadenas JavaScript (los widgets llegan como document.write / innerHTML).
+export function unescapeJs(s = '') {
+  return String(s)
+    .replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/\\\//g, '/')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, ' ');
+}
 
-export function parseRss(xml = '') {
+const RATING_WORDS = { 'did not like it': 1, 'it was ok': 2, 'liked it': 3, 'really liked it': 4, 'it was amazing': 5 };
+
+// ---------- Widget para blogs (estantes) ----------
+
+export function parseCustomWidget(js = '') {
+  const s = unescapeJs(js);
+  const blocks = s.split(/<div[^>]+class="gr_custom_each_container[^"]*"[^>]*>/).slice(1);
   const out = [];
-  const itemRe = /<item>([\s\S]*?)<\/item>/g;
-  let m;
-  while ((m = itemRe.exec(xml))) {
-    const it = m[1];
-    const tag = (name) => {
-      const r = new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${name}>`);
-      const x = it.match(r);
-      return x ? decode(stripCdata(x[1])).trim() : '';
-    };
-    const id = tag('book_id');
-    if (!id) continue;
-    const { title, series } = splitSeries(tag('title'));
-    const rating = parseInt(tag('user_rating'), 10);
+  for (const blk of blocks) {
+    const link = blk.match(/<a\b[^>]*>/)?.[0] || '';
+    const fullTitle = decode((link.match(/\stitle="([^"]*)"/) || [])[1] || '');
+    const reviewId = (link.match(/review\/show\/(\d+)/) || [])[1] || null;
+    const img = blk.match(/<img\b[^>]*>/)?.[0] || '';
+    const src = (img.match(/\ssrc="([^"]+)"/) || [])[1] || '';
+    const titleText = htmlToText((blk.match(/gr_custom_title[^>]*>[\s\S]*?<a\b[^>]*>([\s\S]*?)<\/a>/) || [])[1] || '');
+    const author = htmlToText((blk.match(/gr_custom_author[^>]*>[\s\S]*?<a\b[^>]*>([\s\S]*?)<\/a>/) || [])[1] || '');
+    const ratingWord = ((blk.match(/staticStars[^"]*"[^>]*\stitle="([^"]+)"/) || [])[1] || '').toLowerCase();
+    const id = idFromCover(src);
+    const { title, series } = splitSeries(fullTitle || titleText);
+    if (!title) continue;
     out.push({
-      id,
-      reviewId: (tag('link').match(/review\/show\/(\d+)/) || [])[1] || null,
+      id: id || `r${reviewId}`,
+      reviewId,
       title,
       series,
-      author: tag('author_name'),
-      cover: bigCover(tag('book_large_image_url') || tag('book_medium_image_url') || tag('book_image_url')),
-      pages: num(tag('num_pages')),
-      avgRating: num(tag('average_rating')),
-      userRating: rating > 0 ? rating : null,
-      published: tag('book_published') || null,
-      readAt: toIso(tag('user_read_at')),
-      addedAt: toIso(tag('user_date_added')) || toIso(tag('pubDate')),
-      shelves: tag('user_shelves'),
-      description: htmlToText(stripCdata(tag('book_description'))),
-      isbn: tag('isbn') || null,
-      url: `${BASE}/book/show/${id}`,
+      author,
+      cover: bigCover(src),
+      userRating: RATING_WORDS[ratingWord] || null,
+      url: id ? `${BASE}/book/show/${id}` : reviewId ? `${BASE}/review/show/${reviewId}` : `${BASE}/user/show/${USER_ID}`,
     });
   }
   return out;
 }
 
-async function rssPage(shelf, extra = '') {
-  const url = `${BASE}/review/list_rss/${USER_ID}?shelf=${encodeURIComponent(shelf)}${extra}`;
-  const { text } = await get(url, { accept: 'application/rss+xml, application/xml, text/xml' });
-  return parseRss(text);
+export async function fetchWidgetShelf(shelf, { sort = 'date_added', max = 100 } = {}) {
+  const params = new URLSearchParams({
+    cover_position: 'left',
+    cover_size: 'medium',
+    num_books: String(max),
+    order: 'd',
+    shelf,
+    show_author: '1',
+    show_cover: '1',
+    show_rating: '1',
+    show_review: '0',
+    show_tags: '0',
+    show_title: '1',
+    sort,
+    widget_bg_color: 'FFFFFF',
+    widget_text_color: '000000',
+    widget_title_size: 'medium',
+    widget_width: 'medium',
+    widget_id: `lecturas_${shelf}`,
+  });
+  const { text } = await get(`${BASE}/review/custom_widget/${USER_ID}.Lecturas?${params}`);
+  return parseCustomWidget(text);
 }
 
-// Lee un estante completo. El RSS entrega hasta 100 libros por página;
-// si la paginación no responde, se completa pidiendo el orden inverso.
-export async function fetchShelf(shelf, maxPages = 8) {
-  const byId = new Map();
-  const add = (items) => {
-    let n = 0;
-    for (const b of items) {
-      const k = b.reviewId || b.id;
-      if (!byId.has(k)) {
-        byId.set(k, b);
-        n++;
-      }
-    }
-    return n;
-  };
-  let lastLen = 0;
-  let paginationWorked = true;
-  for (let page = 1; page <= maxPages; page++) {
-    const items = await rssPage(shelf, page > 1 ? `&page=${page}` : '');
-    const added = add(items);
-    lastLen = items.length;
-    if (page > 1 && added === 0) {
-      paginationWorked = false;
-      break;
-    }
-    if (items.length < 100) break;
-  }
-  if (!paginationWorked && lastLen >= 100) {
-    for (const extra of ['&order=a', '&sort=date_read&order=a', '&sort=date_added&order=a']) {
-      try {
-        add(await rssPage(shelf, extra));
-      } catch {
-        /* variante no soportada */
-      }
-    }
-  }
-  return [...byId.values()];
-}
-
-// ---------- Perfil (nombre, foto, progreso de lectura) ----------
+// ---------- Perfil (nombre, foto, avance de lectura, estantes) ----------
 
 export function parseProfile(html = '') {
   const meta = (p) => {
@@ -193,7 +186,13 @@ export function parseProfile(html = '') {
   const name = meta('profile:first_name') || meta('og:title') || 'Lector';
   const avatar = meta('og:image') || null;
 
-  // Progreso de cada libro en "is currently reading"
+  // Cantidad de libros por estante: «read‎ (169)»
+  const shelves = {};
+  for (const m of html.matchAll(/shelf=([a-z0-9-]+)[^"]*"[^>]*>\s*[^<(]*\((\d[\d,.]*)\)\s*</gi)) {
+    if (!(m[1] in shelves)) shelves[m[1]] = num(m[2]);
+  }
+
+  // Avance de cada libro en "is currently reading"
   const progress = {};
   const parts = html.split(/is currently reading/i);
   for (let i = 1; i < parts.length; i++) {
@@ -216,10 +215,10 @@ export function parseProfile(html = '') {
     }
     if (upd) progress[id].updatedAt = toIso(upd[1]);
   }
-  return { name, avatar, progress };
+  return { name, avatar, progress, shelves };
 }
 
-// ---------- Desafíos (widget público) ----------
+// ---------- Desafíos ----------
 
 export function parseWidget(js = '') {
   const s = js
@@ -244,6 +243,37 @@ export function parseWidget(js = '') {
   };
 }
 
+// Página pública de un desafío: «Pablo has read 26 of 30 books in 2026.» y las portadas del año.
+export function parseChallengePage(html = '') {
+  const flat = html.replace(/\s+/g, ' ');
+  const hr = flat.match(/has read\s+([\d,.]+)\s+of\s+([\d,.]+)\s+books?\s+in\s+(\d{4})/i);
+  const done = flat.match(/completed (?:his|her|their) goal of reading\s+([\d,.]+)\s+books?\s+in\s+(\d{4})/i);
+  const cut = html.search(/More like [^<]*books/i);
+  const part = cut > 0 ? html.slice(0, cut) : html;
+  const books = [];
+  const seen = new Set();
+  const re = /<a\b[^>]*href="(?:https:\/\/www\.goodreads\.com)?\/book\/show\/(\d+)[^"]*"[^>]*>\s*<img\b([^>]*)>/g;
+  let m;
+  while ((m = re.exec(part))) {
+    const id = m[1];
+    if (seen.has(id)) continue;
+    const attrs = m[2];
+    const alt = decode((attrs.match(/\salt="([^"]*)"/) || attrs.match(/\stitle="([^"]*)"/) || [])[1] || '');
+    const src = (attrs.match(/\ssrc="([^"]+)"/) || [])[1] || '';
+    if (!alt) continue;
+    seen.add(id);
+    const k = alt.lastIndexOf(' by ');
+    const { title, series } = splitSeries(k > 0 ? alt.slice(0, k) : alt);
+    books.push({ id, title, series, author: k > 0 ? alt.slice(k + 4).trim() : '', cover: bigCover(src), url: `${BASE}/book/show/${id}` });
+  }
+  return {
+    read: hr ? num(hr[1]) : null,
+    goal: hr ? num(hr[2]) : done ? num(done[1]) : null,
+    year: hr ? Number(hr[3]) : done ? Number(done[2]) : null,
+    books,
+  };
+}
+
 export async function fetchChallenges() {
   const found = new Map();
   let slug = null;
@@ -262,24 +292,32 @@ export async function fetchChallenges() {
 
   // 2) Un pedido por año conocido; solo se acepta si responde el desafío pedido.
   const who = slug || USER_ID;
-  const years = Object.entries(CHALLENGE_IDS);
   const results = await Promise.allSettled(
-    years.map(async ([year, cid]) => {
+    Object.entries(CHALLENGE_IDS).map(async ([year, cid]) => {
       const { text } = await get(`${BASE}/user_challenges/widget/${who}?challenge_id=${cid}&v=2`);
       const w = parseWidget(text);
-      if (w && w.challengeId === cid && Number(year) === w.year) return w;
-      return null;
+      return w && w.challengeId === cid && Number(year) === w.year ? w : null;
     })
   );
   for (const r of results) {
     if (r.status !== 'fulfilled' || !r.value) continue;
-    const w = r.value;
-    const prev = found.get(w.year);
-    // Si hay dos lecturas del mismo año, se queda con la de mayor avance.
-    if (!prev || (w.read || 0) > (prev.read || 0)) found.set(w.year, w);
+    if (!found.has(r.value.year) || !found.get(r.value.year).url) found.set(r.value.year, r.value);
   }
-  return [...found.values()]
-    .map(({ year, goal, read, url, challengeId }) => ({ year, goal, read, url, challengeId }))
+
+  // 3) La página de cada desafío trae el conteo al día (el widget a veces queda en 0) y los libros.
+  const list = [...found.values()];
+  await Promise.allSettled(
+    list.map(async (c) => {
+      if (!c.url) return;
+      const p = parseChallengePage((await get(c.url, { timeout: 15000 })).text);
+      if (p.year && p.year !== c.year) return;
+      if (p.read != null) c.read = p.read;
+      if (p.goal != null) c.goal = p.goal;
+      c.books = p.books;
+    })
+  );
+  return list
+    .map(({ year, goal, read, url, challengeId, books }) => ({ year, goal, read, url, challengeId, books: books || [] }))
     .sort((a, b) => b.year - a.year);
 }
 
@@ -397,6 +435,7 @@ export function parseBookPage(html = '', id) {
   const genres = [...html.matchAll(/\/genres\/[^"'>]+["'][^>]*>\s*<span[^>]*>([^<]+)<\/span>/g)].map((m) => decode(m[1]).trim());
   const author = Array.isArray(ld.author) ? ld.author[0]?.name : ld.author?.name;
   const { title, series } = splitSeries(decode(ld.name || meta('og:title') || ''));
+  const pub = (html.match(/First published[^<]*?(\d{4})/) || html.match(/Published[^<]*?(\d{4})/) || [])[1] || null;
   return {
     id: String(id),
     title,
@@ -406,6 +445,7 @@ export function parseBookPage(html = '', id) {
     pages: ld.numberOfPages || null,
     avgRating: num(ld.aggregateRating?.ratingValue),
     ratingsCount: num(ld.aggregateRating?.ratingCount),
+    published: pub,
     description,
     genres: [...new Set(genres)].slice(0, 4),
     url: `${BASE}/book/show/${id}`,

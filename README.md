@@ -4,16 +4,18 @@ Vista minimalista de mi cuenta de Goodreads, con la estética de iOS 26: desafí
 
 ## Cómo funciona
 
-Goodreads ya no ofrece una API pública, así que la app usa tres fuentes públicas a través de funciones de Vercel (carpeta `api/`):
+Goodreads ya no ofrece una API pública y en octubre de 2026 eliminó los feeds RSS de los estantes (la lista completa de un estante ahora exige iniciar sesión). La app usa fuentes que siguen siendo públicas, a través de funciones de Vercel (carpeta `api/`):
 
 | Dato | Fuente |
 | --- | --- |
-| Leyendo, Quiero leer, Leídos | Feed RSS de cada estante (`/review/list_rss/…`) |
-| Avance de lectura (%, página) | Página pública del perfil |
-| Desafíos por año | Widget público del desafío de lectura |
+| Leyendo, Quiero leer, últimos 100 leídos con tu nota | Widget de Goodreads para blogs (`/review/custom_widget/…`) |
+| Avance de lectura (%, página) y libros por estante | Página pública del perfil |
+| Desafío de cada año: meta, conteo y libros leídos | Widget del desafío + página pública del desafío (`/user_challenges/…`) |
 | Buscador y ficha de libro | Buscador de Goodreads y página de cada libro |
 
-El perfil de Goodreads debe seguir siendo público para que los estantes sean visibles.
+Ninguna de estas fuentes entrega la fecha en que se leyó cada libro, por eso la app muestra el año de lectura y el ritmo mensual promedio en vez de un gráfico por mes.
+
+El perfil de Goodreads debe seguir siendo público.
 
 ## Publicar en Vercel
 

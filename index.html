@@ -497,7 +497,7 @@ input, select, textarea { accent-color: var(--ds-btn); caret-color: var(--ds-tin
 <script>
 'use strict';
 const API = '/api';
-const K = { data: 'lecturas.data.v1', recent: 'lecturas.recent.v1', sort: 'lecturas.sort.v1', tab: 'lecturas.tab.v1' };
+const K = { data: 'lecturas.data.v2', recent: 'lecturas.recent.v1', sort: 'lecturas.sort.v1', tab: 'lecturas.tab.v1' };
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -604,20 +604,27 @@ function buildIndex() {
   S.index = new Map();
   const d = S.data;
   if (!d) return;
+  // Libros de cada desafío (con su año), luego los estantes; el estante más actual prevalece.
+  for (const c of d.challenges || []) for (const b of c.books || []) { b.year = b.year || c.year; S.index.set(b.id, { shelf: 'read', book: b }); }
   for (const b of d.toRead || []) S.index.set(b.id, { shelf: 'toread', book: b });
-  for (const b of d.read || []) S.index.set(b.id, { shelf: 'read', book: b });
+  for (const b of d.read || []) {
+    const prev = S.index.get(b.id);
+    if (!b.year && prev?.book.year) b.year = prev.book.year;
+    S.index.set(b.id, { shelf: 'read', book: b });
+  }
   for (const b of d.reading || []) S.index.set(b.id, { shelf: 'reading', book: b });
 }
 buildIndex();
 
-function yearOf(b) { return b.readAt ? new Date(b.readAt).getFullYear() : null; }
-function booksOfYear(y) { return (S.data?.read || []).filter((b) => yearOf(b) === y); }
+// Goodreads ya no entrega la fecha de lectura: los libros de cada año vienen de la página del desafío.
+function challengeOf(y) { return (S.data?.challenges || []).find((c) => c.year === y) || null; }
+function booksOfYear(y) { return challengeOf(y)?.books || []; }
 const thisYear = () => new Date().getFullYear();
 
 function currentChallenge() {
   const y = thisYear();
   const ch = (S.data?.challenges || []).find((c) => c.year === y);
-  return ch || { year: y, goal: null, read: booksOfYear(y).length };
+  return ch || { year: y, goal: null, read: 0, books: [] };
 }
 
 function pace(ch) {
@@ -723,7 +730,7 @@ function challengeHero(ch) {
 
 function progressInfo(b) {
   const pr = b.progress;
-  if (!pr || pr.percent == null) return `<div class="prog"><div class="prog-row"><span>Empezado el ${fmtDate(b.addedAt)}</span></div></div>`;
+  if (!pr || pr.percent == null) return `<div class="prog"><div class="prog-row"><span>Sin avance registrado</span></div></div>`;
   const right = pr.page ? `Pág. ${fmtNum(pr.page)} de ${fmtNum(pr.of)}` : pr.updatedAt ? `Actualizado ${fmtDate(pr.updatedAt)}` : '';
   return `<div class="prog"><div class="bar"><i style="width:${pr.percent}%"></i></div>
     <div class="prog-row"><b>${pr.percent} %</b><span>${right}</span></div></div>`;
@@ -760,24 +767,16 @@ function viewReading() {
       </div></section>` : ''}`;
 }
 
-function monthBars(year) {
-  const counts = Array(12).fill(0);
-  for (const b of booksOfYear(year)) counts[new Date(b.readAt).getMonth()]++;
-  const max = Math.max(1, ...counts);
-  const nowM = year === thisYear() ? new Date().getMonth() : -1;
-  const L = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-  return `<div class="card months" aria-label="Libros por mes">${counts.map((c, i) => `
-    <div class="month ${i === nowM ? 'now' : ''}" title="${c}"><i class="${c ? 'has' : ''}" style="height:${c ? Math.max(10, (c / max) * 100) : 6}%;animation-delay:${i * 30}ms"></i><span>${L[i]}</span></div>`).join('')}</div>`;
-}
-
 function yearStats(year, readCount) {
   const books = booksOfYear(year);
-  const pages = books.reduce((s, b) => s + (b.pages || 0), 0);
   const rated = books.filter((b) => b.userRating);
   const avg = rated.length ? rated.reduce((s, b) => s + b.userRating, 0) / rated.length : null;
+  const now = new Date();
+  const months = year < now.getFullYear() ? 12 : Math.max(1, (now - new Date(year, 0, 1)) / (30.44 * 86400000));
+  const perMonth = readCount / months;
   return `<div class="tiles">
     <div class="tile"><div class="k">Libros</div><div class="v">${fmtNum(readCount)}</div></div>
-    <div class="tile"><div class="k">Páginas</div><div class="v">${pages ? (pages >= 10000 ? fmtNum(Math.round(pages / 1000)) + '<small>mil</small>' : fmtNum(pages)) : '—'}</div></div>
+    <div class="tile"><div class="k">Por mes</div><div class="v">${readCount ? perMonth.toLocaleString('es-CL', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : '—'}</div></div>
     <div class="tile"><div class="k">Tu nota</div><div class="v">${avg ? avg.toLocaleString('es-CL', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + '<small>★</small>' : '—'}</div></div>
   </div>`;
 }
@@ -799,7 +798,8 @@ function viewChallenges() {
       ${ch.goal && ch.read < ch.goal ? `<p class="note">Faltan ${plural(ch.goal - ch.read, 'libro', 'libros')} y quedan ${plural(daysLeft(ch.year), 'día', 'días')}</p>` : ''}
     </button>
     ${yearStats(ch.year, ch.read)}
-    <section class="sec"><div class="sec-h"><h2>Por mes</h2><span>${ch.year}</span></div>${monthBars(ch.year)}</section>
+    ${(ch.books || []).length ? `<section class="sec"><div class="sec-h"><h2>Leídos en ${ch.year}</h2><button data-action="year" data-year="${ch.year}">Ver todos</button></div>
+      <div class="shelf">${ch.books.slice(0, 12).map((b) => `<button class="shelf-item" data-action="book" data-id="${esc(b.id)}">${cover(b)}<div class="t">${esc(b.title)}</div>${stars(b.userRating)}</button>`).join('')}</div></section>` : ''}
     ${past.length ? `<section class="sec"><div class="sec-h"><h2>Años anteriores</h2></div>
       <div class="list">${past.map((c) => {
         const ok = c.goal && c.read >= c.goal;
@@ -1019,13 +1019,13 @@ function bookSheet(b) {
   if (st?.shelf === 'reading') {
     const pr = b.progress;
     status = `<div class="status"><span class="ico">${ICON.book}</span><div style="flex:1;min-width:0"><b>Leyendo${pr?.percent != null ? ` · ${pr.percent} %` : ''}</b>
-      <span>${pr?.page ? `Página ${fmtNum(pr.page)} de ${fmtNum(pr.of)}` : `Desde el ${fmtDate(b.addedAt, true)}`}</span>
+      <span>${pr?.page ? `Página ${fmtNum(pr.page)} de ${fmtNum(pr.of)}` : pr?.updatedAt ? `Actualizado el ${fmtDate(pr.updatedAt, true)}` : 'Sin avance registrado'}</span>
       ${pr?.percent != null ? `<div class="bar"><i style="width:${pr.percent}%"></i></div>` : ''}</div></div>`;
   } else if (st?.shelf === 'read') {
-    status = `<div class="status"><span class="ico g">${ICON.check}</span><div><b>Leído${b.readAt ? ` el ${fmtDate(b.readAt, true)}` : ''}</b>
+    status = `<div class="status"><span class="ico g">${ICON.check}</span><div><b>Leído${b.year ? ` en ${b.year}` : ''}</b>
       <span>${b.userRating ? `Tu nota: ${stars(b.userRating)}` : 'Sin calificar'}</span></div></div>`;
   } else if (st?.shelf === 'toread') {
-    status = `<div class="status"><span class="ico">${ICON.mark}</span><div><b>En Quiero leer</b><span>Agregado el ${fmtDate(b.addedAt, true)}</span></div></div>`;
+    status = `<div class="status"><span class="ico">${ICON.mark}</span><div><b>En Quiero leer</b><span>Está en tu lista de Goodreads</span></div></div>`;
   }
   const facts = [
     b.avgRating ? ['Promedio', `★ ${fmtRating(b.avgRating)}`] : null,
@@ -1069,7 +1069,7 @@ async function openBook(id) {
     const r = await fetch(`${API}/book?id=${encodeURIComponent(id)}`);
     if (r.ok) {
       const x = await r.json();
-      for (const k of ['description', 'pages', 'avgRating', 'genres', 'cover', 'series']) {
+      for (const k of ['description', 'pages', 'avgRating', 'published', 'genres', 'cover', 'series']) {
         if (x[k] && (!b[k] || (k === 'description' && b.descriptionTruncated))) b[k] = x[k];
       }
     }
@@ -1081,8 +1081,8 @@ async function openBook(id) {
 }
 
 function openYear(year) {
-  const ch = (S.data?.challenges || []).find((c) => c.year === year) || { year, goal: null, read: booksOfYear(year).length };
-  const books = booksOfYear(year);
+  const ch = challengeOf(year) || { year, goal: null, read: 0, books: [] };
+  const books = ch.books || [];
   const pct = ch.goal ? ch.read / ch.goal : 0;
   const p = pace(ch);
   const html = `<div class="big-hero" style="padding-top:6px">
@@ -1092,8 +1092,8 @@ function openYear(year) {
     </div>
     ${yearStats(year, ch.read)}
     ${books.length ? `<div class="grid">${books.map((b) => `<button class="shelf-item" data-action="book" data-id="${esc(b.id)}">${cover(b)}<div class="t">${esc(b.title)}</div>${stars(b.userRating)}</button>`).join('')}</div>
-      ${books.length < ch.read ? `<p class="note" style="text-align:center">Se muestran ${fmtNum(books.length)} de ${fmtNum(ch.read)} libros con fecha de lectura registrada.</p>` : ''}`
-      : `<p class="note" style="text-align:center;margin-top:20px">No hay libros con fecha de lectura en ${year}.</p>`}
+      ${books.length < ch.read ? `<p class="note" style="text-align:center">Se muestran ${fmtNum(books.length)} de ${fmtNum(ch.read)} libros.</p>` : ''}`
+      : `<p class="note" style="text-align:center;margin-top:20px">No hay libros registrados en ${year}.</p>`}
     ${ch.url ? `<a class="btn soft block" href="${esc(ch.url)}" target="_blank" rel="noopener">${ICON.ext}Ver desafío en Goodreads</a>` : ''}`;
   openSheet(html, 'year:' + year);
 }
@@ -1108,9 +1108,9 @@ function openProfile() {
       <p class="muted" style="margin-top:4px;font-size:15px">Actualizado ${ago(d.updatedAt)}</p>
     </div>
     <div class="list inner">
-      <div class="row"><span style="flex:1">Leídos</span><span class="v">${fmtNum((d.read || []).length)}</span></div>
-      <div class="row"><span style="flex:1">Leyendo</span><span class="v">${fmtNum((d.reading || []).length)}</span></div>
-      <div class="row"><span style="flex:1">Quiero leer</span><span class="v">${fmtNum((d.toRead || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Leídos</span><span class="v">${fmtNum(d.counts?.read ?? (d.read || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Leyendo</span><span class="v">${fmtNum(d.counts?.reading ?? (d.reading || []).length)}</span></div>
+      <div class="row"><span style="flex:1">Quiero leer</span><span class="v">${fmtNum(d.counts?.toRead ?? (d.toRead || []).length)}</span></div>
       <div class="row"><span style="flex:1">Desafíos</span><span class="v">${fmtNum((d.challenges || []).filter((c) => c.goal).length)}</span></div>
     </div>
     <button class="btn tint block" data-action="refresh-close">${ICON.refresh}Actualizar ahora</button>
